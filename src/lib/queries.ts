@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import type { CarouselSlideView } from "@/lib/admin-types";
@@ -122,7 +123,7 @@ export async function getRelatedProducts(excludeId: string, limit = 3): Promise<
   }
 }
 
-export async function getProductBySlug(slug: string) {
+export const getProductBySlug = cache(async (slug: string) => {
   try {
     return await prisma.product.findFirst({
       where: { slug, published: true },
@@ -130,7 +131,7 @@ export async function getProductBySlug(slug: string) {
   } catch {
     return null;
   }
-}
+});
 
 export async function getPublishedPosts(limit?: number): Promise<BlogPostListItem[]> {
   try {
@@ -145,7 +146,7 @@ export async function getPublishedPosts(limit?: number): Promise<BlogPostListIte
   }
 }
 
-export async function getPostBySlug(slug: string) {
+export const getPostBySlug = cache(async (slug: string) => {
   try {
     return await prisma.blogPost.findFirst({
       where: { slug, published: true },
@@ -153,7 +154,7 @@ export async function getPostBySlug(slug: string) {
   } catch {
     return null;
   }
-}
+});
 
 export async function getPublishedTestimonials(): Promise<TestimonialListItem[]> {
   try {

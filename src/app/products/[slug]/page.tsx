@@ -11,7 +11,8 @@ import { getProductBySlug, getRelatedProducts } from "@/lib/queries";
 import { SITE, whatsappUrl } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
-export const revalidate = 60;
+/** @see PUBLIC_REVALIDATE_SECONDS in @/lib/cache */
+export const revalidate = 3600;
 
 type Props = { params: Promise<{ slug: string }> };
 

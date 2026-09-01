@@ -2,7 +2,8 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/seo";
 
-export const revalidate = 3600;
+/** @see SITEMAP_REVALIDATE_SECONDS in @/lib/cache */
+export const revalidate = 86400;
 
 type SitemapEntry = MetadataRoute.Sitemap[number];
 

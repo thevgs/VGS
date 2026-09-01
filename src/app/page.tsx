@@ -16,7 +16,8 @@ import { buildHomeMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildHomeMetadata();
 
-export const revalidate = 60;
+/** @see PUBLIC_REVALIDATE_SECONDS in @/lib/cache */
+export const revalidate = 3600;
 
 export default async function HomePage() {
   const [slides, products, testimonials, posts] = await Promise.all([
