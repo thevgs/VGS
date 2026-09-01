@@ -6,7 +6,8 @@ import { RichContent } from "@/components/content/RichContent";
 import { getPostBySlug } from "@/lib/queries";
 import { buildPageMetadata } from "@/lib/seo";
 
-export const revalidate = 60;
+/** @see PUBLIC_REVALIDATE_SECONDS in @/lib/cache */
+export const revalidate = 3600;
 
 type Props = { params: Promise<{ slug: string }> };
 

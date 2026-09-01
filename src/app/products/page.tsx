@@ -10,7 +10,8 @@ export const metadata: Metadata = buildPageMetadata({
   path: "/products",
 });
 
-export const revalidate = 60;
+/** @see PUBLIC_REVALIDATE_SECONDS in @/lib/cache */
+export const revalidate = 3600;
 
 export default async function ProductsPage() {
   const products = await getPublishedProducts();
