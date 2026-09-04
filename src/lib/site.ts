@@ -4,7 +4,7 @@ export const SITE = {
   tagline: "Natural glow. Fairer skin. Real results.",
   description:
     "Vita Glow Products is an international skincare brand offering glutathione night creams, capsules, and soaps made with natural herbs for a fair, pink, glowing complexion.",
-  email: process.env.NEXT_PUBLIC_EMAIL || "info@vitaglowproducts.com",
+  email: process.env.NEXT_PUBLIC_EMAIL || "info@thevitaglowcosmetics.com",
   phone: process.env.NEXT_PUBLIC_PHONE || "+971562717889",
   phoneDisplay: process.env.NEXT_PUBLIC_PHONE_DISPLAY || "+971 56 271 7889",
   whatsapp: process.env.NEXT_PUBLIC_WHATSAPP || "971562717889",
