@@ -3,13 +3,22 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { BlogPostingJsonLd, BreadcrumbJsonLd } from "@/components/seo/JsonLd";
 import { RichContent } from "@/components/content/RichContent";
-import { getPostBySlug } from "@/lib/queries";
+import { getPostBySlug, getPublishedPosts } from "@/lib/queries";
 import { buildPageMetadata } from "@/lib/seo";
 
 /** @see PUBLIC_REVALIDATE_SECONDS in @/lib/cache */
 export const revalidate = 3600;
 
 type Props = { params: Promise<{ slug: string }> };
+
+export async function generateStaticParams() {
+  try {
+    const posts = await getPublishedPosts();
+    return posts.map((post) => ({ slug: post.slug }));
+  } catch {
+    return [];
+  }
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;

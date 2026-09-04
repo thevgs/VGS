@@ -41,8 +41,36 @@ Open [http://localhost:3000](http://localhost:3000). Admin: [http://localhost:30
 | `npm run dev` | Dev server |
 | `npm run build` | Production build |
 | `npm run db:push` | Push Prisma schema to Neon |
-| `npm run db:seed` | Seed admin, 6 products, blog, testimonials |
+| `npm run db:seed` | Seed admin, products, blog, testimonials, carousel |
+| `npm run db:setup` | `db:push` + `db:seed` (use after creating a new Neon project) |
 | `npm run db:studio` | Prisma Studio |
+
+## Fresh Neon project (new database)
+
+If your old Neon project hit compute limits or data is unreachable, create a **new Neon project** and wire this app to it:
+
+1. In [Neon Console](https://console.neon.tech), create a project → copy **two** connection strings:
+   - **Pooled** (`…-pooler.…neon.tech…`) → `DATABASE_URL` in `.env` and Vercel
+   - **Direct** (no `-pooler`) → `DIRECT_URL` in `.env` and Vercel
+2. Update `.env` locally (copy from `.env.example` if needed). Keep the same `JWT_SECRET`, Cloudinary keys, and `NEXT_PUBLIC_SITE_URL` if redeploying the same site.
+3. Initialize the empty database:
+
+```bash
+npm run db:setup
+```
+
+4. Update **Vercel** → Project → Settings → Environment Variables with the new `DATABASE_URL` and `DIRECT_URL`, then redeploy.
+5. Log in at `/admin/login` with `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env` (seed resets admin password to match `.env`).
+6. Re-upload **product and carousel images** in Admin (Cloudinary URLs from the old DB are lost unless you still have them).
+7. Re-generate **verification codes** in Admin → Codes (codes from the old database are not in the seed).
+
+**What the seed restores:** admin user, default products (placeholder images), blog posts, testimonials, carousel slides.
+
+**What you must redo manually:** Cloudinary product/carousel photos, verification codes, any custom CMS edits you made after seeding.
+
+**Old data:** If Neon eventually allows access again, use **SQL export** or **branch restore** in Neon console and copy rows into the new DB — otherwise treat this as a clean start.
+
+**Avoid exhausting compute again:** use a Neon **dev branch** for local `npm run dev`; production uses HTTP Prisma queries plus a 24-hour catalog data cache (see `src/lib/cache.ts`). Point uptime checks at `/api/health` without `?db=1`.
 
 ## Deploy (Hostinger VPS)
 
@@ -89,4 +117,4 @@ See comments in `docker-compose.yml` for first-time DB setup. nginx is included 
 - No cart/checkout in v1 — conversion is WhatsApp / Call / Contact.
 - Upload images in Admin (Products / Blog tabs) — saved to `/var/www/vitaglow/uploads/` on the VPS.
 - Or paste an image URL manually. Setup: [deploy/setup-uploads.sh](deploy/setup-uploads.sh).
-- Set `NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY` for the contact form.
+- Set `NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY` for the contact form, then enable **hCaptcha** under Spam Protection in the [Web3Forms dashboard](https://app.web3forms.com).

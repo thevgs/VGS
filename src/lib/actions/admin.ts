@@ -2,7 +2,8 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
+import { CACHE_TAGS } from "@/lib/cache";
 import {
   AUTH_COOKIE,
   authCookieOptions,
@@ -19,10 +20,34 @@ import { slugify } from "@/lib/utils";
 export type ActionResult = { error?: string; success?: boolean; published?: boolean };
 
 function revalidateProductSitePaths(slug?: string | null) {
+  updateTag(CACHE_TAGS.products);
   revalidatePath("/");
   revalidatePath("/products");
+  revalidatePath("/sitemap.xml");
   revalidatePath("/admin");
   if (slug) revalidatePath(`/products/${slug}`);
+}
+
+function revalidateBlogSitePaths(slug?: string | null) {
+  updateTag(CACHE_TAGS.posts);
+  revalidatePath("/");
+  revalidatePath("/blog");
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/admin");
+  if (slug) revalidatePath(`/blog/${slug}`);
+}
+
+function revalidateTestimonialSitePaths() {
+  updateTag(CACHE_TAGS.testimonials);
+  revalidatePath("/");
+  revalidatePath("/reviews");
+  revalidatePath("/admin");
+}
+
+function revalidateCarouselSitePaths() {
+  updateTag(CACHE_TAGS.carousel);
+  revalidatePath("/");
+  revalidatePath("/admin");
 }
 
 export async function loginFormAction(
@@ -215,9 +240,7 @@ export async function saveBlogAction(formData: FormData): Promise<ActionResult> 
       await prisma.blogPost.create({ data });
     }
 
-    revalidatePath("/blog");
-    revalidatePath("/");
-    revalidatePath("/admin");
+    revalidateBlogSitePaths(slug);
     return { success: true };
   } catch (error) {
     if (isUnauthorized(error)) return { error: "Session expired. Please log in again." };
@@ -232,8 +255,7 @@ export async function deleteBlogAction(formData: FormData): Promise<ActionResult
     const id = String(formData.get("id") || "");
     if (!id) return { error: "Missing id" };
     await prisma.blogPost.delete({ where: { id } });
-    revalidatePath("/blog");
-    revalidatePath("/admin");
+    revalidateBlogSitePaths();
     return { success: true };
   } catch (error) {
     if (isUnauthorized(error)) return { error: "Session expired. Please log in again." };
@@ -262,9 +284,7 @@ export async function saveTestimonialAction(formData: FormData): Promise<ActionR
       await prisma.testimonial.create({ data });
     }
 
-    revalidatePath("/reviews");
-    revalidatePath("/");
-    revalidatePath("/admin");
+    revalidateTestimonialSitePaths();
     return { success: true };
   } catch (error) {
     if (isUnauthorized(error)) return { error: "Session expired. Please log in again." };
@@ -279,8 +299,7 @@ export async function deleteTestimonialAction(formData: FormData): Promise<Actio
     const id = String(formData.get("id") || "");
     if (!id) return { error: "Missing id" };
     await prisma.testimonial.delete({ where: { id } });
-    revalidatePath("/reviews");
-    revalidatePath("/admin");
+    revalidateTestimonialSitePaths();
     return { success: true };
   } catch (error) {
     if (isUnauthorized(error)) return { error: "Session expired. Please log in again." };
@@ -447,8 +466,7 @@ export async function saveCarouselSlideAction(formData: FormData): Promise<Actio
       await prisma.carouselSlide.create({ data });
     }
 
-    revalidatePath("/");
-    revalidatePath("/admin");
+    revalidateCarouselSitePaths();
     return { success: true };
   } catch (error) {
     if (isUnauthorized(error)) return { error: "Session expired. Please log in again." };
@@ -463,8 +481,7 @@ export async function deleteCarouselSlideAction(formData: FormData): Promise<Act
     const id = String(formData.get("id") || "");
     if (!id) return { error: "Missing id" };
     await prisma.carouselSlide.delete({ where: { id } });
-    revalidatePath("/");
-    revalidatePath("/admin");
+    revalidateCarouselSitePaths();
     return { success: true };
   } catch (error) {
     if (isUnauthorized(error)) return { error: "Session expired. Please log in again." };

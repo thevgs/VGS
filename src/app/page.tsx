@@ -24,7 +24,7 @@ export default async function HomePage() {
     getPublishedCarouselSlides(),
     getPublishedProducts(),
     getPublishedTestimonials(),
-    getPublishedPosts(3),
+    getPublishedPosts(),
   ]);
 
   return (
@@ -35,7 +35,7 @@ export default async function HomePage() {
       <AboutTeaser />
       <TestimonialsSection testimonials={testimonials} />
       <VerifyCta />
-      <BlogPreview posts={posts} />
+      <BlogPreview posts={posts.slice(0, 3)} />
     </>
   );
 }

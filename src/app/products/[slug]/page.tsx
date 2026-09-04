@@ -7,7 +7,7 @@ import { RichContent } from "@/components/content/RichContent";
 import { plainTextPreview } from "@/lib/sanitize-html";
 import { buildPageMetadata } from "@/lib/seo";
 import { buttonVariants } from "@/components/ui/button";
-import { getProductBySlug, getRelatedProducts } from "@/lib/queries";
+import { getProductBySlug, getPublishedProducts, getRelatedProducts } from "@/lib/queries";
 import { SITE, whatsappUrl } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,15 @@ import { cn } from "@/lib/utils";
 export const revalidate = 3600;
 
 type Props = { params: Promise<{ slug: string }> };
+
+export async function generateStaticParams() {
+  try {
+    const products = await getPublishedProducts();
+    return products.map((product) => ({ slug: product.slug }));
+  } catch {
+    return [];
+  }
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;

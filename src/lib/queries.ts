@@ -1,7 +1,9 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import type { CarouselSlideView } from "@/lib/admin-types";
+import { CACHE_TAGS, DATA_REVALIDATE_SECONDS, SITEMAP_REVALIDATE_SECONDS } from "@/lib/cache";
 
 const productListSelect = {
   id: true,
@@ -37,6 +39,20 @@ const testimonialListSelect = {
   sortOrder: true,
   published: true,
 } satisfies Prisma.TestimonialSelect;
+
+const carouselSelect = {
+  id: true,
+  title: true,
+  subtitle: true,
+  ctaLabel: true,
+  ctaHref: true,
+  secondaryCtaLabel: true,
+  secondaryCtaHref: true,
+  imageUrl: true,
+  imageAlt: true,
+  sortOrder: true,
+  published: true,
+} satisfies Prisma.CarouselSlideSelect;
 
 export type ProductListItem = Prisma.ProductGetPayload<{ select: typeof productListSelect }>;
 export type RelatedProductItem = Prisma.ProductGetPayload<{ select: typeof relatedProductSelect }>;
@@ -85,85 +101,136 @@ const DEFAULT_CAROUSEL_SLIDES: CarouselSlideView[] = [
   },
 ];
 
-export async function getPublishedCarouselSlides(): Promise<CarouselSlideView[]> {
-  try {
-    const slides = await prisma.carouselSlide.findMany({
-      where: { published: true },
-      orderBy: { sortOrder: "asc" },
-    });
-    if (slides.length === 0) return DEFAULT_CAROUSEL_SLIDES;
-    return slides;
-  } catch {
-    return DEFAULT_CAROUSEL_SLIDES;
-  }
-}
+export const getPublishedCarouselSlides = unstable_cache(
+  async (): Promise<CarouselSlideView[]> => {
+    try {
+      const slides = await prisma.carouselSlide.findMany({
+        where: { published: true },
+        orderBy: { sortOrder: "asc" },
+        select: carouselSelect,
+      });
+      if (slides.length === 0) return DEFAULT_CAROUSEL_SLIDES;
+      return slides;
+    } catch {
+      return DEFAULT_CAROUSEL_SLIDES;
+    }
+  },
+  ["published-carousel"],
+  { tags: [CACHE_TAGS.carousel], revalidate: DATA_REVALIDATE_SECONDS },
+);
 
-export async function getPublishedProducts(): Promise<ProductListItem[]> {
-  try {
-    return await prisma.product.findMany({
-      where: { published: true },
-      orderBy: { sortOrder: "asc" },
-      select: productListSelect,
-    });
-  } catch {
-    return [];
-  }
-}
+export const getPublishedProducts = unstable_cache(
+  async (): Promise<ProductListItem[]> => {
+    try {
+      return await prisma.product.findMany({
+        where: { published: true },
+        orderBy: { sortOrder: "asc" },
+        select: productListSelect,
+      });
+    } catch {
+      return [];
+    }
+  },
+  ["published-products"],
+  { tags: [CACHE_TAGS.products], revalidate: DATA_REVALIDATE_SECONDS },
+);
 
 export async function getRelatedProducts(excludeId: string, limit = 3): Promise<RelatedProductItem[]> {
-  try {
-    return await prisma.product.findMany({
-      where: { published: true, id: { not: excludeId } },
-      orderBy: { sortOrder: "asc" },
-      take: limit,
-      select: relatedProductSelect,
-    });
-  } catch {
-    return [];
-  }
+  const products = await getPublishedProducts();
+  return products
+    .filter((product) => product.id !== excludeId)
+    .slice(0, limit)
+    .map((product) => ({
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      imageUrls: product.imageUrls,
+    }));
 }
 
 export const getProductBySlug = cache(async (slug: string) => {
-  try {
-    return await prisma.product.findFirst({
-      where: { slug, published: true },
-    });
-  } catch {
-    return null;
-  }
+  return unstable_cache(
+    async () => {
+      try {
+        return await prisma.product.findFirst({
+          where: { slug, published: true },
+        });
+      } catch {
+        return null;
+      }
+    },
+    ["product-by-slug", slug],
+    { tags: [CACHE_TAGS.products], revalidate: DATA_REVALIDATE_SECONDS },
+  )();
 });
 
-export async function getPublishedPosts(limit?: number): Promise<BlogPostListItem[]> {
-  try {
-    return await prisma.blogPost.findMany({
-      where: { published: true },
-      orderBy: { publishedAt: "desc" },
-      take: limit,
-      select: blogPostListSelect,
-    });
-  } catch {
-    return [];
-  }
-}
+export const getPublishedPosts = unstable_cache(
+  async (): Promise<BlogPostListItem[]> => {
+    try {
+      return await prisma.blogPost.findMany({
+        where: { published: true },
+        orderBy: { publishedAt: "desc" },
+        select: blogPostListSelect,
+      });
+    } catch {
+      return [];
+    }
+  },
+  ["published-posts"],
+  { tags: [CACHE_TAGS.posts], revalidate: DATA_REVALIDATE_SECONDS },
+);
 
 export const getPostBySlug = cache(async (slug: string) => {
-  try {
-    return await prisma.blogPost.findFirst({
-      where: { slug, published: true },
-    });
-  } catch {
-    return null;
-  }
+  return unstable_cache(
+    async () => {
+      try {
+        return await prisma.blogPost.findFirst({
+          where: { slug, published: true },
+        });
+      } catch {
+        return null;
+      }
+    },
+    ["post-by-slug", slug],
+    { tags: [CACHE_TAGS.posts], revalidate: DATA_REVALIDATE_SECONDS },
+  )();
 });
 
-export async function getPublishedTestimonials(): Promise<TestimonialListItem[]> {
-  try {
-    return await prisma.testimonial.findMany({
-      where: { published: true },
-      orderBy: { sortOrder: "asc" },
-      select: testimonialListSelect,
-    });
-  } catch {
-    return [];
-  }
-}
+export const getPublishedTestimonials = unstable_cache(
+  async (): Promise<TestimonialListItem[]> => {
+    try {
+      return await prisma.testimonial.findMany({
+        where: { published: true },
+        orderBy: { sortOrder: "asc" },
+        select: testimonialListSelect,
+      });
+    } catch {
+      return [];
+    }
+  },
+  ["published-testimonials"],
+  { tags: [CACHE_TAGS.testimonials], revalidate: DATA_REVALIDATE_SECONDS },
+);
+
+export const getSitemapEntries = unstable_cache(
+  async () => {
+    const [products, posts] = await Promise.all([
+      prisma.product.findMany({
+        where: { published: true },
+        select: { slug: true, updatedAt: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+      prisma.blogPost.findMany({
+        where: { published: true },
+        select: { slug: true, updatedAt: true },
+        orderBy: { publishedAt: "desc" },
+      }),
+    ]);
+    return { products, posts };
+  },
+  ["sitemap-entries"],
+  {
+    tags: [CACHE_TAGS.products, CACHE_TAGS.posts],
+    revalidate: SITEMAP_REVALIDATE_SECONDS,
+  },
+);

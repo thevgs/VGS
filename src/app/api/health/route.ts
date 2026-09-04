@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { isCloudinaryConfigured } from "@/lib/cloudinary";
-import { prisma } from "@/lib/prisma";
 
 /** Public health check — env booleans only by default (no DB wake-ups). */
 export async function GET(request: Request) {
@@ -21,6 +20,7 @@ export async function GET(request: Request) {
 
   if (deepCheck) {
     try {
+      const { prisma } = await import("@/lib/prisma");
       await prisma.$queryRaw`SELECT 1`;
       checks.database = true;
       const adminCount = await prisma.adminUser.count();

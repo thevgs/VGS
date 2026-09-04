@@ -2,8 +2,8 @@
  * Neon + Prisma connection string helpers.
  * @see https://neon.com/docs/guides/prisma
  *
- * Runtime (Prisma Client): DATABASE_URL — pooled hostname (-pooler), sslmode=require
- * CLI (db push, migrate):   DIRECT_URL  — direct hostname (no -pooler), sslmode=require
+ * Runtime (Prisma Client via HTTP adapter): DATABASE_URL — pooled hostname (-pooler)
+ * CLI (db push, migrate):                   DIRECT_URL  — direct hostname (no -pooler)
  */
 
 export function stripChannelBinding(url: string) {
@@ -20,19 +20,45 @@ export function ensureConnectTimeout(url: string, seconds = 15) {
   return `${url}${url.includes("?") ? "&" : "?"}connect_timeout=${seconds}`;
 }
 
-/** Neon pooler + Prisma on serverless (Vercel) needs pgbouncer=true. */
+/** Neon pooler + Prisma TCP engine on serverless (Vercel) needs pgbouncer=true. */
 export function ensurePgBouncer(url: string) {
   if (!url.includes("-pooler.") || /[?&]pgbouncer=/.test(url)) return url;
   return `${url}${url.includes("?") ? "&" : "?"}pgbouncer=true`;
 }
 
-/** Pooled URL for Prisma Client runtime connections. */
+/** One Prisma connection per serverless isolate — avoids connection storms on TCP. */
+export function ensureConnectionLimit(url: string, limit = 1) {
+  if (/[?&]connection_limit=/.test(url)) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}connection_limit=${limit}`;
+}
+
+function stripPrismaEngineParams(url: string) {
+  return url
+    .replace(/[&?]pgbouncer=[^&]*/g, "")
+    .replace(/[&?]connection_limit=[^&]*/g, "")
+    .replace(/[&?]connect_timeout=[^&]*/g, "")
+    .replace(/[&?]pool_timeout=[^&]*/g, "")
+    .replace(/\?&/, "?")
+    .replace(/[?&]$/, "");
+}
+
+/** HTTP adapter URL — Neon fetch driver, no persistent TCP / Prisma engine params. */
+export function getHttpDatabaseUrl(url = process.env.DATABASE_URL) {
+  if (!url) return url;
+  let normalized = stripChannelBinding(url);
+  normalized = stripPrismaEngineParams(normalized);
+  normalized = ensureSslModeRequire(normalized);
+  return normalized;
+}
+
+/** Pooled URL for Prisma Client TCP fallback. */
 export function getRuntimeDatabaseUrl(url = process.env.DATABASE_URL) {
   if (!url) return url;
   let normalized = stripChannelBinding(url);
   normalized = ensureSslModeRequire(normalized);
   normalized = ensureConnectTimeout(normalized);
   normalized = ensurePgBouncer(normalized);
+  normalized = ensureConnectionLimit(normalized);
   return normalized;
 }
 
